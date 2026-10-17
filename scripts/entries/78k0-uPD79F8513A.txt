@@ -1,0 +1,27 @@
+# Entry points for the example uPD79F8513A image (78K0/KC2).
+#
+# Source: hp-oem-firmware/reconstructed/k0dasm_kc2.py
+#   KC2_VECTORS        - the reconstructed vector table, status DERIVED/INFERRED
+#   RECONSTRUCTED_ENTRY_POINTS - that table's live handlers plus main
+#
+# Block 0 (0x0000-0x03FF) holds our dump payload, so the on-chip vector table is
+# NOT a usable source of entry points and is deliberately absent from this file.
+# Addresses are flash addresses in the OEM image.
+#
+# Format: <hexaddr> <name>
+
+# reset -> crt0 (INFERRED: no surviving evidence in block 0; 0x04B0 is the code the
+# flat sweep finds running from reset, see analysis-listing-reconciliation.md §5.6)
+04b0 crt0
+
+# main: reached from crt0, identified in k0dasm_kc2.py RECONSTRUCTED_ENTRY_POINTS
+1d0b main
+
+# The six live ISR targets. Each is DERIVED: the handler clears its own peripheral
+# IF bit, which is what identifies it (analysis-interrupts-vectors.md §b).
+4d5c INTSR0     # UART0 receive
+4dc3 INTST0     # UART0 transmit (INTCSI10/INTST0 slot)
+4ded INTTM51    # TM51 head: P12.3 / TMH0 bit engine
+524c INTP1
+52d6 INTP3
+52e9 INTTMH0

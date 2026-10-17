@@ -1,0 +1,34 @@
+Ghidra firmware workbench
+Copyright 2026 Robert Navarro
+
+This product is licensed under the Apache License, Version 2.0. See LICENSE.
+
+Provenance
+==========
+
+All Java scripts, Python scripts and documentation in this repository were written for this
+project. They were recovered from local scratch directories, not imported from another project.
+
+No GPL-licensed code is included. In particular, nothing was copied from
+`psxjt5/Ghidra-78K0-Processor-Module`, `rnavarro/Ghidra-78K0-Processor-Module`, or any other
+GPL-3.0 processor module or firmware toolkit. This work treats the 78K0 SLEIGH module as an
+installed Ghidra language: it calls the public Ghidra API against whatever language is loaded,
+and contains no SLEIGH source, no `.slaspec`, `.sinc`, `.pspec` or `.sla` files, and no code
+derived from them.
+
+Third-party components referenced but not distributed
+=====================================================
+
+- Apache License 2.0, National Security Agency. Ghidra. The scripts call its public Java API
+  (`ghidra.app.script`, `ghidra.program.model.*`, `ghidra.pcode.emu.*`, `ghidra.app.cmd.*`).
+  `scripts/AdjVerify.java` follows the setup sequence shown in Ghidra's shipped
+  `StandAloneEmuExampleScript.java`; the code is written against the API, not copied.
+- BSD-3-Clause, Michael Naberezny. k0dasm and k0emu. Used as external tools: an entry-point
+  source for seeding and a reference emulator for the p-code comparison. Neither is vendored
+  here; `python/compare_emu.py` and `python/dump_adjb.py` import k0emu from a path the user
+  supplies, and `python/model_adjb.py` needs only a CSV.
+- MIT, `mdomanic/ghidra-fw-toolkit`. Cited in the README as prior art for profile-driven
+  seeding. No code was taken.
+
+The entry list `scripts/entries/78k0-uPD79F8513A.txt` contains addresses and names recovered from a
+firmware image for the purpose of documenting the format. It contains no third-party code.
