@@ -87,6 +87,50 @@ migrated script is byte-for-byte identical to the CSV written by the `EmulatorHe
 comparison against the same reference table gave the same 2048 of 2048, and the ROL4/ROR4
 comparison regenerated both tables and gave 131072 of 131072.
 
+## Negative result: Decompiler Parameter ID makes this image worse
+
+Measured 2026-10-17 on the 78K0/KC2 image, 202 functions, identical seeds and analysis
+options to the baseline run. `DecompilerParameterIdCmd` then ran over all executable memory
+in 2.6 s and committed signatures.
+
+| metric | baseline | with PDI |
+|---|---|---|
+| signatures changed | n/a | 111 of 202 |
+| functions gaining parameters | n/a | 98 |
+| parameters lost | n/a | 0 |
+| functions turned `void` | n/a | 0 |
+| implicit `in_AX` inputs | 54 | 82 |
+| total implicit register noise | 110 | 138 |
+| functions returning `undefined1` | 40 | 40 |
+| decompiled C, lines | 11,220 | 11,514 |
+
+It adds parameters and increases register noise. It fixes nothing.
+
+### Why
+
+The `.cspec` declares one prototype, `__asmA`, with `strategy="register"` over A, BC, HL and
+DE, output A. When the analyzer decides a function takes parameters it binds them to those
+registers, and because A is declared first every invented parameter materialises as an
+`in_AX` read. PDI therefore does not replace implicit register inputs; it manufactures more
+of them.
+
+The clearest fabricated case is `crt0`, the reset entry at `0x04B0`, which has zero call sites
+in the image and acquired `char param_1`. There is no call site that could supply it.
+
+The 40 `undefined1` returns are unaffected because a single catch-all prototype is as
+ambiguous about the return side as about parameters.
+
+### Consequence
+
+Do not add PDI to the pipeline for this module. The limiting factor is not a missing analyzer;
+it is that one catch-all prototype cannot express a convention that hand-written assembly does
+not follow. Any improvement has to come from the `.cspec`, which means either more than one
+prototype or register inputs declared as conditionally read rather than always read.
+
+`PdiProbe.java` in `scripts/` reproduces the measurement. It runs the analysis stage itself,
+because `-noanalysis` leaves only the seeded functions and PDI would have almost nothing to
+explore.
+
 ## Limits
 
 - The reference is a separate emulator (k0emu) whose behaviour was captured from a physical
@@ -125,3 +169,23 @@ python3 python/compare_emu.py        # needs GFW_WORKDIR and K0EMU_SRC
 Both Python scripts read `GFW_WORKDIR` (default: the current directory) and `K0EMU_SRC` (no
 default; the checkout of the reference emulator). `compare_emu.py` prints the two agreement
 fractions above and exits non-zero on any mismatch.
+
+## Extensions
+
+Ghidra ships optional extensions as zips under `Extensions/Ghidra/` and only loads one after it
+is unpacked into `Ghidra/Extensions/`. That directory is inside the install and outside any
+language-directory check, so an extension installed on one machine and not another is drift a
+`.sinc` diff will never show.
+
+`extensions.want` records the extensions a documented workflow needs. The Makefile installs
+from the shipped zips and verifies against that list:
+
+```
+make list-extensions                 # what this Ghidra ships
+make extensions EXTENSION=MachineLearning
+make verify-extensions               # non-zero if a wanted extension is missing
+```
+
+Only `MachineLearning` is listed. It provides the RandomForest function finder, which is not
+used on the worked example (function recovery there is already complete) but is the fallback
+for an image with neither a vector table nor an external disassembler to seed from.
